@@ -5,135 +5,29 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import NavBar from './_component/NavBar';
 import { motion } from 'framer-motion';
+import {StatCard} from "@/app/_component/StatCard";
+import {Sidebar} from "@/app/_component/SideBar";
+import {ActivityChart} from "@/app/_component/FakeUiChart";
+import {RecentTasks} from "@/app/_component/TaskRecentTemplate";
 
 // @ts-ignore
-const StatCard = ({ title, value, icon, color }) => {
-    return (
-        <motion.div
-            className={`p-6 rounded-lg shadow-md ${color}`}
-            whileHover={{ scale: 1.03 }}
-            transition={{ type: "spring", stiffness: 300 }}
-        >
-            <div className="flex items-center justify-between">
-                <div>
-                    <p className="text-sm font-medium text-gray-600">{title}</p>
-                    <h3 className="text-2xl font-bold mt-1">{value}</h3>
-                </div>
-                <div className={`p-3 rounded-full bg-opacity-20 ${color.replace('bg-', 'bg-opacity-20 text-')}`}>
-                    {icon}
-                </div>
-            </div>
-        </motion.div>
-    );
-};
-
-const ActivityChart = () => {
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-md h-64">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Activité Récente</h3>
-            <div className="flex items-end h-40 space-x-2">
-                {[40, 25, 60, 30, 45, 80, 55].map((height, index) => (
-                    <motion.div
-                        key={index}
-                        className="bg-indigo-500 rounded-t w-8"
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
-                    />
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const RecentTasks = () => {
-    const tasks = [
-        { id: 1, title: "Mise à jour du catalogue", status: "Terminé", date: "Aujourd'hui" },
-        { id: 2, title: "Répondre aux messages", status: "En cours", date: "Aujourd'hui" },
-        { id: 3, title: "Gérer les commandes", status: "En attente", date: "Demain" },
-        { id: 4, title: "Mettre à jour le stock", status: "En attente", date: "Demain" },
-    ];
-
-    return (
-        <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Tâches Récentes</h3>
-            <div className="overflow-hidden">
-                <table className="min-w-full divide-y divide-gray-200">
-                    <thead>
-                    <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tâche</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                    </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                    {tasks.map((task) => (
-                        <motion.tr
-                            key={task.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            <td className="px-4 py-3 text-sm text-gray-900">{task.title}</td>
-                            <td className="px-4 py-3 text-sm">
-                  <span className={`px-2 py-1 text-xs rounded-full ${
-                      task.status === 'Terminé' ? 'bg-green-100 text-green-800' :
-                          task.status === 'En cours' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-gray-100 text-gray-800'
-                  }`}>
-                    {task.status}
-                  </span>
-                            </td>
-                            <td className="px-4 py-3 text-sm text-gray-500">{task.date}</td>
-                        </motion.tr>
-                    ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    );
-};
-
-const Sidebar = () => {
-    const menuItems = [
-        { icon: "📊", label: "Vue d'ensemble", active: true },
-        { icon: "🛒", label: "Produits" },
-        { icon: "💰", label: "Commandes" },
-        { icon: "👥", label: "Clients" },
-        { icon: "📈", label: "Rapports" },
-        { icon: "⚙️", label: "Paramètres" },
-    ];
-
-    return (
-        <div className="bg-indigo-800 text-white w-64 p-4 hidden md:block">
-            <div className="mb-6 mt-4">
-                <h2 className="text-xl font-bold">Tableau de Bord</h2>
-            </div>
-            <nav className="space-y-1">
-                {menuItems.map((item, index) => (
-                    <motion.a
-                        key={index}
-                        href="#"
-                        className={`flex items-center px-4 py-3 text-sm rounded-lg ${
-                            item.active ? 'bg-indigo-700' : 'hover:bg-indigo-700'
-                        }`}
-                        whileHover={{ x: 4 }}
-                        transition={{ type: "spring", stiffness: 400 }}
-                    >
-                        <span className="mr-3">{item.icon}</span>
-                        <span>{item.label}</span>
-                    </motion.a>
-                ))}
-            </nav>
-        </div>
-    );
-};
-
 export default function Dashboard() {
     const { data: session, status } = useSession();
     const router = useRouter();
     const [greeting, setGreeting] = useState('');
+    const [products, setProducts] = useState([]);
 
+    const fetchProducts = async () => {
+        try {
+            const response = await fetch('/api/products');
+            const data = await response.json();
+            setProducts(data.count.toString());
+        } catch (e) {
+            console.error(e);
+        }
+    }
+
+        fetchProducts();
     useEffect(() => {
         if (status === 'unauthenticated') {
             router.push('/auth/login/');
@@ -179,7 +73,7 @@ export default function Dashboard() {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <StatCard
                             title="Produits actifs"
-                            value="42"
+                            value={products}
                             icon={<svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path></svg>}
                             color="bg-indigo-100 text-indigo-800"
                         />
