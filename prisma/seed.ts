@@ -1,8 +1,11 @@
-import { PrismaClient } from '@prisma/client';
+
+import { PrismaClient, OrderStatus } from '@prisma/client';
+
 
 const prisma = new PrismaClient();
 
 async function main() {
+
     const adminRole = await prisma.role.upsert({
         where: { name: 'admin' },
         update: {},
@@ -30,113 +33,181 @@ async function main() {
         },
     });
 
+    await prisma.orderItem.deleteMany({});
+    await prisma.order.deleteMany({});
+    await prisma.product.deleteMany({});
+    
     const products = [
         {
-            id: '1',
-            name: 'Smartphone Galaxy S23',
-            description: 'Le dernier smartphone Samsung avec 256 Go de stockage et un appareil photo 108 MP',
-            price: 899.99,
-            stock: 45,
-            imageUrl: 'https://example.com/s23.jpg',
-            isActive: true,
-        },
-        {
-            id: '2',
-            name: 'iPhone 15 Pro',
-            description: 'Smartphone Apple premium avec puce A17 et caméras professionnelles',
-            price: 1199.99,
-            stock: 30,
-            imageUrl: 'https://example.com/iphone15.jpg',
-            isActive: true,
-        },
-        {
-            id: '3',
-            name: 'MacBook Pro 16"',
-            description: 'Ordinateur portable Apple avec puce M2 Pro, 16 Go RAM et 512 Go SSD',
-            price: 2499.99,
-            stock: 12,
-            imageUrl: 'https://example.com/macbookpro.jpg',
-            isActive: true,
-        },
-        {
-            id: '4',
-            name: 'Dell XPS 15',
-            description: 'Ordinateur portable Windows avec écran InfinityEdge, Intel i7 et 1 To SSD',
-            price: 1899.99,
-            stock: 18,
-            imageUrl: 'https://example.com/xps15.jpg',
-            isActive: true,
-        },
-        {
-            id: '5',
-            name: 'iPad Air',
-            description: 'Tablette Apple avec puce M1, écran Liquid Retina et compatibilité Apple Pencil',
-            price: 699.99,
+            name: 'Smartphone XYZ',
+            description: 'Le dernier smartphone avec des fonctionnalités avancées',
+            price: 599.99,
             stock: 50,
-            imageUrl: 'https://example.com/ipadair.jpg',
-            isActive: true,
+            imageUrl: '/images/products/smartphone.jpg'
         },
         {
-            id: '6',
-            name: 'Sony WH-1000XM5',
-            description: 'Casque sans fil avec réduction de bruit active, autonomie de 30 heures',
+            name: 'Ordinateur portable ProBook',
+            description: 'Idéal pour les professionnels et les étudiants',
+            price: 899.99,
+            stock: 30,
+            imageUrl: '/images/products/laptop.jpg'
+        },
+        {
+            name: 'Écouteurs sans fil',
+            description: 'Son de haute qualité avec réduction de bruit',
+            price: 129.99,
+            stock: 100,
+            imageUrl: '/images/products/headphones.jpg'
+        },
+        {
+            name: 'Montre connectée SportTrack',
+            description: 'Suivez votre activité physique et vos performances',
+            price: 199.99,
+            stock: 45,
+            imageUrl: '/images/products/smartwatch.jpg'
+        },
+        {
+            name: 'Tablette GraphicPad',
+            description: 'Parfaite pour les graphistes et les artistes',
             price: 349.99,
-            stock: 60,
-            imageUrl: 'https://example.com/wh1000xm5.jpg',
-            isActive: true,
-        },
-        {
-            id: '7',
-            name: 'Apple AirPods Pro 2',
-            description: 'Écouteurs sans fil avec réduction de bruit active et audio spatial',
-            price: 249.99,
-            stock: 75,
-            imageUrl: 'https://example.com/airpodspro.jpg',
-            isActive: true,
-        },
-        {
-            id: '8',
-            name: 'Samsung QLED 65" TV',
-            description: 'Téléviseur 4K avec technologie QLED, Smart TV et HDR10+',
-            price: 1299.99,
-            stock: 8,
-            imageUrl: 'https://example.com/qledtv.jpg',
-            isActive: true,
-        },
-        {
-            id: '9',
-            name: 'Dyson V12 Detect',
-            description: 'Aspirateur sans fil avec détection laser de poussière et filtration avancée',
-            price: 649.99,
             stock: 25,
-            imageUrl: 'https://example.com/dysonv12.jpg',
-            isActive: true,
+            imageUrl: '/images/products/tablet.jpg'
         },
         {
-            id: '10',
-            name: 'PlayStation 5',
-            description: 'Console de jeu nouvelle génération avec SSD ultra-rapide et manette DualSense',
+            name: 'Camera 4K Pro',
+            description: 'Camera professionnelle haute définition',
+            price: 799.99,
+            stock: 15,
+            imageUrl: '/images/products/camera.jpg'
+        },
+        {
+            name: 'Console de jeux NextGen',
+            description: 'La dernière console de jeux avec graphismes 4K',
             price: 499.99,
-            stock: 5,
-            imageUrl: 'https://example.com/ps5.jpg',
-            isActive: true,
+            stock: 35,
+            imageUrl: '/images/products/console.jpg'
+        },
+        {
+            name: 'Enceinte Smart Sound',
+            description: 'Enceinte connectée avec assistant vocal',
+            price: 149.99,
+            stock: 60,
+            imageUrl: '/images/products/speaker.jpg'
         }
     ];
 
-    console.log('Ajout des produits...');
+    const createdProducts = [];
     for (const product of products) {
-        await prisma.product.upsert({
-            where: {id: product.id},
-            update: product,
-            create: product,
+        const createdProduct = await prisma.product.create({
+            data: product
         });
+        createdProducts.push(createdProduct);
     }
 
+    let orderCounter = 0;
+
+    const generateOrderReference = (date: Date) => {
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const orderNumber = (100 + orderCounter++).toString();
+        return `CMD-${year}${month}${orderNumber}`;
+    };
+
+
+    const generateOrderStatus = (date: Date) => {
+        const now = new Date();
+        const daysDiff = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysDiff > 30) {
+            const rand = Math.random();
+            if (rand < 0.8) return OrderStatus.DELIVERED;
+            if (rand < 0.9) return OrderStatus.CANCELLED;
+            return OrderStatus.SHIPPED;
+        } else if (daysDiff > 14) {
+            const rand = Math.random();
+            if (rand < 0.6) return OrderStatus.DELIVERED;
+            if (rand < 0.8) return OrderStatus.SHIPPED;
+            if (rand < 0.9) return OrderStatus.PROCESSING;
+            return OrderStatus.CANCELLED;
+        } else if (daysDiff > 7) {
+            const rand = Math.random();
+            if (rand < 0.4) return OrderStatus.DELIVERED;
+            if (rand < 0.7) return OrderStatus.SHIPPED;
+            if (rand < 0.9) return OrderStatus.PROCESSING;
+            return OrderStatus.PENDING;
+        } else {
+            const rand = Math.random();
+            if (rand < 0.2) return OrderStatus.DELIVERED;
+            if (rand < 0.4) return OrderStatus.SHIPPED;
+            if (rand < 0.7) return OrderStatus.PROCESSING;
+            return OrderStatus.PENDING;
+        }
+    };
+    const now = new Date();
+    const orders = [];
+
+    for (let month = 0; month < 6; month++) {
+        const monthDate = new Date();
+        monthDate.setMonth(now.getMonth() - month);
+
+        const orderCount = month === 0 ? 15 : 10 - month;
+
+        for (let i = 0; i < orderCount; i++) {
+            const orderDate = new Date(
+                monthDate.getFullYear(),
+                monthDate.getMonth(),
+                Math.floor(Math.random() * 28) + 1
+            );
+
+            const itemsCount = Math.floor(Math.random() * 3) + 1;
+            const selectedProducts = [];
+            const usedProducts = new Set();
+
+            for (let j = 0; j < itemsCount; j++) {
+                let productIndex;
+                do {
+                    productIndex = Math.floor(Math.random() * createdProducts.length);
+                } while (usedProducts.has(productIndex));
+
+                usedProducts.add(productIndex);
+                const product = createdProducts[productIndex];
+                const quantity = Math.floor(Math.random() * 3) + 1;
+
+                selectedProducts.push({
+                    product,
+                    quantity,
+                    unitPrice: product.price
+                });
+            }
+
+            const totalAmount = selectedProducts.reduce(
+                (sum, item) => sum + item.unitPrice * item.quantity,
+                0
+            );
+
+            const status = generateOrderStatus(orderDate);
+
+            const order = await prisma.order.create({
+                data: {
+                    reference: generateOrderReference(orderDate),
+                    createdAt: orderDate,
+                    updatedAt: orderDate,
+                    status,
+                    totalAmount,
+                }
+            });
+
+            orders.push(order);
+        }
+    }
+
+
+    console.log(`Seed terminé: ${products.length} produits et ${orders.length} commandes créés`);
 }
 
 main()
-    .catch((e) => {
-        console.error('Erreur lors du seed:', e);
+    .catch(e => {
+        console.error(e);
         process.exit(1);
     })
     .finally(async () => {
