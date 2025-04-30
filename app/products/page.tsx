@@ -4,9 +4,10 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import Image from 'next/image';
+import {ProductUtils} from "@/app/utils/ProductUtils";
 
 export default function ProductsPage() {
-    const [products, setProducts] = useState([]);
+    const [products, setProducts] = useState<ProductUtils[]>([]);
     const [loading, setLoading] = useState(true);
     const { data: session } = useSession();
     const isAdmin = session?.user?.role === 'admin';
