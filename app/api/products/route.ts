@@ -10,7 +10,11 @@ export async function GET() {
         const products = await prisma.product.findMany({
             where: { isActive: true },
         });
-        return NextResponse.json(products);
+        const productsCount = await prisma.product.count({
+            where: {isActive: true}
+        });
+        return NextResponse.json({products: products, count: productsCount});
+        
     } catch (error) {
         return NextResponse.json({ error: 'Erreur lors de la récupération des produits' }, { status: 500 });
     }
